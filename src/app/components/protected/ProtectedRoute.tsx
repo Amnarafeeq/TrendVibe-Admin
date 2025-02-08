@@ -5,6 +5,7 @@ import { useEffect, ReactNode } from "react";
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  params?: { [key: string]: string | number | boolean | string[] | undefined };
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
@@ -15,7 +16,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       const isLoggedIn = localStorage.getItem("isLoggedIn");
 
       if (!isLoggedIn) {
-        router.replace("/admin"); // Prevent back button navigation
+        router.replace("/admin"); // Prevents back button navigation
       }
     }
   }, [router]);
