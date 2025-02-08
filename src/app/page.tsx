@@ -11,7 +11,7 @@ const AdminLogin = () => {
     const handleLogin = (e : React.FormEvent)=>{
         e.preventDefault()
 
-        if(email===process.env.ADMIN_Email && password ===process.env.ADMIN_Password){
+        if(email==="trendvibe@gmail.com" && password ==="trendvibe456"){
           localStorage.setItem("isLoggedIn","true")
           router.replace("/admin/dashboard")
         }else{
