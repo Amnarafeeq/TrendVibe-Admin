@@ -23,11 +23,11 @@ const AdminHeader = () => {
     //     </div>
     //   </div>
     // </div>
-    <div className="w-full bg-[#FAFAFA] flex justify-between items-center p-4 shadow-md">
+    <div className="w-full bg-[#FAFAFA] flex justify-between items-center p-2 sm:p-4 shadow-md">
     {/* Sidebar Toggle Button for Mobile */}
     <MobileSidebar />
     
-    <div className="text-xl font-semibold text-[#252B42]">Admin Dashboard</div>
+    <div className="sm:text-xl font-semibold text-[#252B42]">Admin Dashboard</div>
     
     {/* Profile Section */}
     <div className="flex items-center space-x-4">

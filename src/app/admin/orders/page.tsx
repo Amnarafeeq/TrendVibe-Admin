@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import AdminHeader from '../components/AdminHeader';
 import Image from 'next/image';
+import { Loader2 } from 'lucide-react';
 
 export type Order = {
   _id: string;
@@ -95,7 +96,7 @@ const AdminOrders = () => {
   
   }, []);
 
-  if (loading) return <p className="text-center text-3xl text-textColor2 flex items-center justify-center h-screen">Loading orders...</p>;
+  if (loading) return <span className='flex items-center justify-center h-screen gap-3 text-textColor2 '><Loader2 className='sm:w-8 sm:h-8 animate-spin'/> <span className='text-2xl sm:text-3xl font-semibold'>Orders are loading...</span></span> 
   if (error) return <p className="text-center text-3xl h-screen flex items-center justify-center text-red-500">{error}</p>;
 
   const filteredOrders = filter === "all" ? orders : orders.filter((order) => order.status === filter);
@@ -140,146 +141,147 @@ const AdminOrders = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen">
-        {/* Sidebar */}
-        <div className="w-[250px] bg-gray-800 h-full p-4">
-          <Sidebar />
+    <div className="flex flex-col md:flex-row h-screen">
+      {/* Sidebar (Hidden on small screens) */}
+      <div className="w-[250px] bg-gray-800 h-full hidden md:block">
+        <Sidebar />
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col bg-[#FAFAFA]">
+        {/* Header */}
+        <div>
+          <AdminHeader />
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col bg-[#FAFAFA]">
-          {/* Header */}
-          <div className="h-[70px] bg-white shadow-md">
-            <AdminHeader />
-          </div>
+        {/* Orders Section */}
+        <div className="flex-1 overflow-y-auto sm:p-4">
+          {/* Navigation & Filters */}
+          <nav className="bg-[#252B42] text-[#FAFAFA] sm:p-4 mb-6 flex flex-col md:flex-row justify-between items-center rounded-lg shadow-md">
+            <h2 className="font-bold text-lg md:text-2xl text-center">
+              Total Orders: {calculateTotalOrders()}
+            </h2>
 
-         
-
-<div className="flex-1 overflow-y-auto p-6">
-  {/* Navigation and Filters */}
-  <nav className="bg-[#252B42] text-[#FAFAFA] p-4 mb-6 flex justify-between items-center rounded-lg shadow-md">
-    <h2 className="font-bold text-2xl text-[#FAFAFA]">Total Orders: {calculateTotalOrders()}</h2>
-
-    <div className="space-x-4">
-      {["all", "pending", "delivered", "dispatched"].map((status) => (
-        <button
-          key={status}
-          className={`px-4 py-2 rounded-lg ${
-            filter === status
-              ? "bg-[#FAFAFA] text-[#252B42] font-bold"
-              : "text-[#FAFAFA]"
-          } hover:bg-[#23856D] hover:text-[#FAFAFA]`}
-          onClick={() => setFilter(status)}
-        >
-          {status}
-        </button>
-      ))}
-    </div>
-  </nav>
-
-  {/* Orders Table */}
-  <div className="overflow-x-auto bg-[#FAFAFA] p-4 rounded-lg shadow-lg">
-    <h2 className="text-lg font-semibold mb-4 text-[#252B42]">Orders</h2>
-
-    <table className="w-full border-collapse border border-[#737373]">
-      <thead>
-        <tr className="bg-[#23856D] text-[#FAFAFA]">
-          <th className="p-2 border">ID</th>
-          <th className="p-2 border">Customer</th>
-          <th className="p-2 border">Email</th>
-          <th className="p-2 border">Date</th>
-          <th className="p-2 border">Total</th>
-          <th className="p-2 border">Status</th>
-          <th className="p-2 border">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {filteredOrders.map((order) => (
-          <React.Fragment key={order._id}>
-            <tr
-              className="cursor-pointer hover:bg-[#737373]/10 transition-all"
-              onClick={() => toggleOrderDetails(order._id)}
-            >
-              <td className="p-2 border">{order._id}</td>
-              <td className="p-2 border">{order.customerName}</td>
-              <td className="p-2 border">{order.email}</td>
-              <td className="p-2 border">
-                {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "N/A"}
-              </td>
-              <td className="p-2 border text-[#737373] font-bold">${order.totalPrice}</td>
-              <td className="p-2 border">
-                <select
-                  value={order.status || ""}
-                  className="border p-1 bg-[#FAFAFA] text-[#252B42] rounded-md"
-                  onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                  onClick={(e) => e.stopPropagation()} // Prevent order details toggle
-                >
-                  <option value="pending">Pending</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="dispatched">Dispatched</option>
-                </select>
-              </td>
-              <td className="p-2 border">
+            <div className="mt-3 md:mt-0  md:space-x-4">
+              {["all", "pending", "delivered", "dispatched"].map((status) => (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(order._id);
-                  }}
-                  className="bg-[#2DC071] text-[#FAFAFA] px-3 py-2 rounded-lg"
+                  key={status}
+                  className={`px-3 md:px-4 py-1 md:py-2 rounded-lg text-sm md:text-base ${
+                    filter === status
+                      ? "bg-[#FAFAFA] text-[#252B42] font-bold"
+                      : "text-[#FAFAFA]"
+                  } hover:bg-[#23856D] hover:text-[#FAFAFA]`}
+                  onClick={() => setFilter(status)}
                 >
-                  Delete
+                  {status}
                 </button>
-              </td>
-            </tr>
+              ))}
+            </div>
+          </nav>
 
-            {/* Order Details */}
-            {selectedOrderId === order._id && (
-              <tr>
-                <td colSpan={7} className="bg-[#FAFAFA] p-4 transition-all">
-                  <h3 className="font-bold text-[#252B42]">Order Details</h3>
-                  <p>Customer: {order.customerName}</p>
-                  <p>Email: {order.email}</p>
-                  <div>
-                    {order.products?.map((item, index) => (
-                      <div key={index} className="flex items-center gap-4 p-4 border-b">
-                        <div className="flex items-center gap-4 w-full">
-                          {item.product?.images && item.product.images[0] && (
-                            <Image
-                              width={20}
-                              height={20} 
-                              src={urlFor(item.product.images[0]).url()}
-                              alt="Product Image"
-                              className="w-16 h-16 object-cover rounded-md"
-                            />
-                          )}
-                          <p className="text-lg font-semibold text-[#252B42]">
-                            {item.product?.name}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-between w-24">
-                          <p className="text-sm text-[#737373]">Quantity: {item.quantity}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            )}
-          </React.Fragment>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
+          {/* Orders Table */}
+          <div className="overflow-x-auto bg-[#FAFAFA] p-4 rounded-lg shadow-lg">
+            <h2 className="text-lg md:text-xl font-semibold mb-4 text-[#252B42]">
+              Orders
+            </h2>
 
+            <table className="w-full border-collapse border border-[#737373]">
+              <thead>
+                <tr className="bg-[#23856D] text-[#FAFAFA] text-xs md:text-sm">
+                  <th className="p-2 border">ID</th>
+                  <th className="p-2 border">Customer</th>
+                  <th className="p-2 border">Email</th>
+                  <th className="p-2 border">Date</th>
+                  <th className="p-2 border">Total</th>
+                  <th className="p-2 border">Status</th>
+                  <th className="p-2 border">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredOrders.map((order) => (
+                  <React.Fragment key={order._id}>
+                    <tr
+                      className="cursor-pointer hover:bg-[#737373]/10 transition-all text-xs md:text-sm"
+                      onClick={() => toggleOrderDetails(order._id)}
+                    >
+                      <td className="p-2 border truncate max-w-[80px] md:max-w-[150px]">
+                        {order._id}
+                      </td>
+                      <td className="p-2 border truncate max-w-[120px]">{order.customerName}</td>
+                      <td className="p-2 border truncate max-w-[150px]">{order.email}</td>
+                      <td className="p-2 border">
+                        {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "N/A"}
+                      </td>
+                      <td className="p-2 border text-[#737373] font-bold">${order.totalPrice}</td>
+                      <td className="p-2 border">
+                        <select
+                          value={order.status || ""}
+                          className="border p-1 bg-[#FAFAFA] text-[#252B42] rounded-md text-xs md:text-sm"
+                          onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()} // Prevent row click
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="dispatched">Dispatched</option>
+                        </select>
+                      </td>
+                      <td className="p-2 border">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(order._id);
+                          }}
+                          className="bg-[#2DC071] text-[#FAFAFA] px-2 md:px-3 py-1 md:py-2 rounded-lg text-xs md:text-sm"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
 
+                    {/* Order Details (Expandable) */}
+                    {selectedOrderId === order._id && (
+                      <tr>
+                        <td colSpan={7} className="bg-[#FAFAFA] p-4 transition-all">
+                          <h3 className="font-bold text-[#252B42]">Order Details</h3>
+                          <p className="text-sm">Customer: {order.customerName}</p>
+                          <p className="text-sm">Email: {order.email}</p>
 
-
-
-
+                          <div className="mt-3 space-y-2">
+                            {order.products?.map((item, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-col md:flex-row items-center gap-4 p-4 border-b"
+                              >
+                                {item.product?.images && item.product.images[0] && (
+                                  <Image
+                                    width={64}
+                                    height={64}
+                                    src={urlFor(item.product.images[0]).url()}
+                                    alt="Product Image"
+                                    className="w-16 h-16 object-cover rounded-md"
+                                  />
+                                )}
+                                <p className="text-sm md:text-lg font-semibold text-[#252B42]">
+                                  {item.product?.name}
+                                </p>
+                                <p className="text-xs md:text-sm text-[#737373]">
+                                  Quantity: {item.quantity}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </ProtectedRoute>
+    </div>
+  </ProtectedRoute>
   );
 };
 
