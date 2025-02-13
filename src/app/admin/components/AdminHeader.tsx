@@ -40,7 +40,7 @@ const AdminHeader = () => {
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-[#252B42]">Admin User</p>
-            <p className="text-xs text-gray-500">admin@trendvibe.com</p>
+            <p className="text-xs text-gray-500">trendvibe@gmail.com</p>
           </div>
           <Image
             width={40}
