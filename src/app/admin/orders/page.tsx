@@ -258,7 +258,7 @@ const AdminOrders = () => {
                                     className="flex flex-col md:flex-row items-center gap-4 p-4 border-b"
                                   >
                                     {item.product?.images && item.product.images[0] && (
-                                      <img
+                                      <Image
                                         width={64}
                                         height={64}
                                         src={urlFor(item.product.images[0]).url()}

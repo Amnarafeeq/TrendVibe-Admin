@@ -24,6 +24,7 @@ const AdminLogin = () => {
                 toast.error("Invalid email or password")
             }
         } catch (error) {
+            console.error('Login error:', error);
             toast.error("Something went wrong")
         } finally {
             setLoading(false)

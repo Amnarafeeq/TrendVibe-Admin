@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
   Package,
@@ -9,7 +9,7 @@ import {
   Users,
   Settings,
   Menu,
-  X,
+  
 } from "lucide-react";
 import {
   Sheet,

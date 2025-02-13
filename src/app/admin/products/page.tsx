@@ -3,17 +3,19 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { client } from '@/sanity/lib/client';
 import { urlFor } from '@/sanity/lib/image';
-import { Loader2, Plus, Search, Trash2, Edit2, Filter } from 'lucide-react';
+import { Loader2, Search, Trash2, Edit2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import AdminHeader from '../components/AdminHeader';
 import toast from 'react-hot-toast';
+import Image from 'next/image';
+import ProductModal from '../components/ProductModal';
 
 // First, let's define the Product type
-interface Product {
+export interface Product {
   _id: string;
   name: string;
   slug: string;
-  images: string[];
+  images: Array<{ _id: string; url: string }>;
   description: string;
   price: number;
   stock: number;
@@ -25,9 +27,9 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -48,7 +50,9 @@ export default function ProductsPage() {
       }`;
       const data = await client.fetch(query);
       setProducts(data);
+      setError(null);
     } catch (error) {
+      setError('Failed to fetch products');
       toast.error('Failed to fetch products');
       console.error(error);
     } finally {
@@ -63,8 +67,28 @@ export default function ProductsPage() {
       await client.delete(id);
       setProducts(prev => prev.filter(p => p._id !== id));
       toast.success('Product deleted successfully');
+      setError(null);
     } catch (error) {
+      setError('Failed to delete product');
       toast.error('Failed to delete product');
+      console.error(error);
+    }
+  };
+
+  const handleEdit = async (productData: Partial<Product>) => {
+    try {
+      if (!selectedProduct?._id) return;  // Early return if no ID
+      
+      await client.patch(selectedProduct._id)  // Remove the ! operator
+        .set(productData)
+        .commit();
+      
+      await fetchProducts();
+      setSelectedProduct(null);
+      toast.success('Product updated successfully');
+    } catch (error) {
+      setError('Failed to update product');
+      toast.error('Failed to update product');
       console.error(error);
     }
   };
@@ -127,9 +151,11 @@ export default function ProductsPage() {
               >
                 <div className="relative h-48">
                   {product.images?.[0] && (
-                    <img
+                    <Image
                       src={urlFor(product.images[0]).url()}
                       alt={product.name}
+                      width={400}
+                      height={300}
                       className="w-full h-full object-cover rounded-t-lg"
                     />
                   )}
@@ -137,7 +163,7 @@ export default function ProductsPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setIsEditing(product._id);
+                        setSelectedProduct(product);
                       }}
                       className="p-2 bg-white rounded-full shadow-sm hover:shadow-md"
                     >
@@ -169,7 +195,7 @@ export default function ProductsPage() {
                     }`}>
                       {product.status}
                     </span>
-                    {product.categories?.map((cat: any) => (
+                    {product.categories?.map((cat: { title: string }) => (
                       <span key={cat.title} className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
                         {cat.title}
                       </span>
@@ -181,6 +207,15 @@ export default function ProductsPage() {
           </div>
         </main>
       </div>
+
+      {/* Add Modal */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onSubmit={handleEdit}
+        />
+      )}
     </div>
   );
 }

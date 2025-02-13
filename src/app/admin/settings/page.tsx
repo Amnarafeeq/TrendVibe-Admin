@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Globe, Lock, User, Save } from 'lucide-react';
+import { Bell, Globe, User, Save } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import AdminHeader from '../components/AdminHeader';
 import toast from 'react-hot-toast';
@@ -15,7 +15,6 @@ type NotificationSettings = {
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('profile');
-  const [loading, setLoading] = useState(false);
 
   const [profileSettings, setProfileSettings] = useState({
     name: 'Admin User',
@@ -38,15 +37,13 @@ const SettingsPage = () => {
   });
 
   const handleSave = async () => {
-    setLoading(true);
     try {
       // Here you would typically save to your backend
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated delay
       toast.success('Settings saved successfully');
     } catch (error) {
       toast.error('Failed to save settings');
-    } finally {
-      setLoading(false);
+      console.error('Error:', error);
     }
   };
 
@@ -209,11 +206,10 @@ const SettingsPage = () => {
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={handleSave}
-                  disabled={loading}
                   className="flex items-center space-x-2 px-4 py-2 bg-[#23856D] text-white rounded-lg hover:bg-[#23856D]/90 disabled:opacity-50"
                 >
                   <Save size={20} />
-                  <span>{loading ? 'Saving...' : 'Save Changes'}</span>
+                  <span>Save Changes</span>
                 </button>
               </div>
             </motion.div>

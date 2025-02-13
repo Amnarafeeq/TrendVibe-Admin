@@ -7,7 +7,15 @@ import Sidebar from '../components/Sidebar';
 import AdminHeader from '../components/AdminHeader';
 import SalesGraph from '../components/graph';
 import StatCard from '../components/StatCard';
-import { Order } from '../orders/page';
+
+interface Order {
+  _id: string;
+  totalPrice: number;
+  customerName: string;
+  status: string;
+  _createdAt: string;
+  orderNumber: string;
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -41,11 +49,11 @@ export default function DashboardPage() {
         }`);
         
         const totalOrders = allOrders.length;
-        const totalRevenue = allOrders.reduce((sum: number, order: any) => 
+        const totalRevenue = allOrders.reduce((sum: number, order: Order) => 
           sum + (order.totalPrice || 0), 0);
         
         // Count unique customers
-        const uniqueCustomers = new Set(allOrders.map((order: any) => order.customerName)).size;
+        const uniqueCustomers = new Set(allOrders.map((order: { customerName: string }) => order.customerName)).size;
 
         setStats({
           totalProducts: productsCount,

@@ -1,4 +1,4 @@
-import { Product } from "@/app/admin/products/page";
+import type { Product } from "@/app/admin/products/page";
 
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
