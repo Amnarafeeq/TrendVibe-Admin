@@ -142,27 +142,29 @@ const AdminOrders = () => {
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen">
+      <div className="flex h-screen flex-col md:flex-row">
         <Sidebar />
-        <div className="flex-1 flex flex-col bg-[#FAFAFA]">
+        <div className="flex-1 flex flex-col bg-[#FAFAFA] w-full">
           <AdminHeader />
-          <div className="flex-1 overflow-y-auto p-6">
-            {/* Animated Stats Navigation */}
+          <div className="flex-1 overflow-y-auto p-2 md:p-6">
+            {/* Stats Navigation - More compact on mobile */}
             <motion.nav
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-textColor2 text-white p-4 mb-6 flex justify-between items-center rounded-lg shadow-md"
+              className="bg-textColor2 text-white p-3 mb-4 md:mb-6 flex flex-col gap-3 rounded-lg shadow-md"
             >
-              <h2 className='font-bold text-2xl'>Total Orders: {calculateTotalOrders()}</h2>
+              <h2 className='font-bold text-lg md:text-2xl text-center md:text-left'>Total Orders: {calculateTotalOrders()}</h2>
 
-              <div className="space-x-4">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-center md:justify-start">
                 {["all", "pending", "delivered", "dispatched"].map((status, index) => (
                   <motion.button
                     key={status}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className={`px-4 py-2 rounded-lg ${filter === status ? "bg-white text-red-500 font-bold" : "text-white"}`}
+                    className={`px-2 py-1 md:px-4 md:py-2 rounded-lg text-xs md:text-base ${
+                      filter === status ? "bg-white text-red-500 font-bold" : "text-white"
+                    }`}
                     onClick={() => setFilter(status)}
                   >
                     {status}
@@ -171,118 +173,114 @@ const AdminOrders = () => {
               </div>
             </motion.nav>
 
-            {/* Animated Orders Table */}
+            {/* Orders Table - Responsive design */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="overflow-x-auto bg-white p-4 rounded-lg shadow-lg"
+              className="bg-white p-2 md:p-4 rounded-lg shadow-lg"
             >
-              <h2 className="text-lg font-semibold mb-4">Orders</h2>
+              <h2 className="text-base md:text-lg font-semibold mb-4">Orders</h2>
 
-              <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                  <tr className="bg-darkBackground text-buttonColor">
-                    <th className="p-2 border">ID</th>
-                    <th className="p-2 border">Customer</th>
-                    <th className="p-2 border">Email</th>
-                    <th className="p-2 border">Date</th>
-                    <th className="p-2 border">Total</th>
-                    <th className="p-2 border">Status</th>
-                    <th className="p-2 border">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map((order, index) => (
-                    <React.Fragment key={order._id}>
-                      <motion.tr
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="cursor-pointer hover:bg-gray-100 transition-all"
-                        onClick={() => toggleOrderDetails(order._id)}
-                      >
-                        <td className="p-2 border truncate max-w-[80px] md:max-w-[150px]">
-                          {order._id}
-                        </td>
-                        <td className="p-2 border truncate max-w-[120px]">{order.customerName}</td>
-                        <td className="p-2 border truncate max-w-[150px]">{order.email}</td>
-                        <td className="p-2 border">
-                          {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "N/A"}
-                        </td>
-                        <td className="p-2 border text-[#737373] font-bold">${order.totalPrice}</td>
-                        <td className="p-2 border">
-                          <select
-                            value={order.status || ""}
-                            className="border p-1 bg-[#FAFAFA] text-[#252B42] rounded-md text-xs md:text-sm"
-                            onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                            onClick={(e) => e.stopPropagation()} // Prevent row click
-                          >
-                            <option value="pending">Pending</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="dispatched">Dispatched</option>
-                          </select>
-                        </td>
-                        <td className="p-2 border">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(order._id);
-                            }}
-                            className="bg-[#2DC071] text-[#FAFAFA] px-2 md:px-3 py-1 md:py-2 rounded-lg text-xs md:text-sm"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </motion.tr>
-
-                      {selectedOrderId === order._id && (
+              <div className="overflow-x-auto -mx-2 md:mx-0">
+                <table className="w-full whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-darkBackground text-buttonColor text-xs md:text-base">
+                      <th className="p-2 border">ID</th>
+                      <th className="p-2 border">Customer</th>
+                      <th className="p-2 border">Email</th>
+                      <th className="p-2 border">Date</th>
+                      <th className="p-2 border">Total</th>
+                      <th className="p-2 border">Status</th>
+                      <th className="p-2 border">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((order, index) => (
+                      <React.Fragment key={order._id}>
                         <motion.tr
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="cursor-pointer hover:bg-gray-100 transition-all text-xs md:text-base"
+                          onClick={() => toggleOrderDetails(order._id)}
                         >
-                          <td colSpan={7} className="bg-gray-50 p-4">
-                            <motion.div
-                              initial={{ y: -20 }}
-                              animate={{ y: 0 }}
-                              className="space-y-2"
+                          <td className="p-2 border truncate max-w-[60px] md:max-w-[150px]">
+                            {order._id}
+                          </td>
+                          <td className="p-2 border truncate max-w-[80px] md:max-w-[120px]">{order.customerName}</td>
+                          <td className="p-2 border truncate max-w-[100px] md:max-w-[150px]">{order.email}</td>
+                          <td className="p-2 border">
+                            {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "N/A"}
+                          </td>
+                          <td className="p-2 border text-[#737373] font-bold">${order.totalPrice}</td>
+                          <td className="p-2 border">
+                            <select
+                              value={order.status || ""}
+                              className="border p-1 bg-[#FAFAFA] text-[#252B42] rounded-md text-xs w-full"
+                              onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <h3 className="font-bold text-[#252B42]">Order Details</h3>
-                              <p className="text-sm">Customer: {order.customerName}</p>
-                              <p className="text-sm">Email: {order.email}</p>
-
-                              <div className="mt-3 space-y-2">
-                                {order.products?.map((item, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex flex-col md:flex-row items-center gap-4 p-4 border-b"
-                                  >
-                                    {item.product?.images && item.product.images[0] && (
-                                      <Image
-                                        width={64}
-                                        height={64}
-                                        src={urlFor(item.product.images[0]).url()}
-                                        alt="Product Image"
-                                        className="w-16 h-16 object-cover rounded-md"
-                                      />
-                                    )}
-                                    <p className="text-sm md:text-lg font-semibold text-[#252B42]">
-                                      {item.product?.name}
-                                    </p>
-                                    <p className="text-xs md:text-sm text-[#737373]">
-                                      Quantity: {item.quantity}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </motion.div>
+                              <option value="pending">Pending</option>
+                              <option value="delivered">Delivered</option>
+                              <option value="dispatched">Dispatched</option>
+                            </select>
+                          </td>
+                          <td className="p-2 border">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(order._id);
+                              }}
+                              className="bg-[#2DC071] text-[#FAFAFA] px-2 py-1 md:px-3 md:py-2 rounded-lg text-xs w-full"
+                            >
+                              Delete
+                            </button>
                           </td>
                         </motion.tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
+
+                        {selectedOrderId === order._id && (
+                          <motion.tr>
+                            <td colSpan={7} className="bg-gray-50 p-2 md:p-4">
+                              <motion.div className="space-y-2 text-xs md:text-base">
+                                <h3 className="font-bold text-[#252B42]">Order Details</h3>
+                                <p>Customer: {order.customerName}</p>
+                                <p>Email: {order.email}</p>
+
+                                <div className="mt-3 space-y-2">
+                                  {order.products?.map((item, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex items-center gap-2 p-2 border-b"
+                                    >
+                                      {item.product?.images && item.product.images[0] && (
+                                        <Image
+                                          width={48}
+                                          height={48}
+                                          src={urlFor(item.product.images[0]).url()}
+                                          alt="Product Image"
+                                          className="w-12 h-12 md:w-16 md:h-16 object-cover rounded-md"
+                                        />
+                                      )}
+                                      <div>
+                                        <p className="font-semibold text-[#252B42]">
+                                          {item.product?.name}
+                                        </p>
+                                        <p className="text-[#737373]">
+                                          Quantity: {item.quantity}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            </td>
+                          </motion.tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </motion.div>
           </div>
         </div>
