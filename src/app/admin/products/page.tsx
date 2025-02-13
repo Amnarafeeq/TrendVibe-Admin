@@ -1,31 +1,33 @@
 "use client";
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { client } from '@/sanity/lib/client';
-import { useEffect, useState } from 'react';
+import { urlFor } from '@/sanity/lib/image';
+import { Loader2, Plus, Search, Trash2, Edit2, Filter } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import AdminHeader from '../components/AdminHeader';
-import { urlFor } from '@/sanity/lib/image';
-import Image from 'next/image';
-import { Loader2, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
+// First, let's define the Product type
 interface Product {
   _id: string;
   name: string;
   slug: string;
   images: string[];
-  intro: string;
   description: string;
   price: number;
-  discount: number;
   stock: number;
-  status: string;
-  variant?: string;
-  categories: string[];
+  status: 'new' | 'hot' | 'sale';
+  categories: Array<{ title: string }>;
 }
 
-const ProductsPage = () => {
+export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
     fetchProducts();
@@ -38,377 +40,147 @@ const ProductsPage = () => {
         name,
         "slug": slug.current,
         images,
-        intro,
         description,
         price,
-        discount,
         stock,
         status,
-        variant,
-        "categories": categories[]->title
+        categories[]->{ title }
       }`;
       const data = await client.fetch(query);
       setProducts(data);
-    } catch (err) {
-      setError('Failed to load products.');
-      console.error(err);
+    } catch (error) {
+      toast.error('Failed to fetch products');
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
+    if (!id || !confirm('Are you sure you want to delete this product?')) return;
+    
     try {
       await client.delete(id);
-      setProducts((prevProducts) => prevProducts.filter((product) => product._id !== id));
-    } catch (err) {
-      console.error("Error deleting product:", err);
-      alert("Failed to delete the product.");
+      setProducts(prev => prev.filter(p => p._id !== id));
+      toast.success('Product deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete product');
+      console.error(error);
     }
   };
 
-  if (loading)
-    return (
-      <span className="flex items-center justify-center h-screen gap-3 text-textColor2">
-        <Loader2 className="sm:w-8 sm:h-8 animate-spin" /> 
-        <span className="text-2xl sm:text-3xl font-semibold">Product is loading...</span>
-      </span>
-    );
+  const filteredProducts = products.filter(product => {
+    if (!product || !product.name) return false;
+    
+    const matchesSearch = searchTerm 
+      ? product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      : true;
+      
+    const matchesFilter = filterStatus === 'all' || product.status === filterStatus;
+    return matchesSearch && matchesFilter;
+  });
 
-  if (error)
-    return <p className="text-center text-3xl h-screen flex items-center justify-center text-red-500">{error}</p>;
+  if (loading) return <span className='flex items-center justify-center h-screen gap-3 text-textColor2 '><Loader2 className='sm:w-8 sm:h-8 animate-spin'/> <span className='text-2xl sm:text-3xl font-semibold'>Products are loading...</span></span> 
+  if (error) return <p className="text-center text-3xl h-screen flex items-center justify-center text-red-500">{error}</p>;
 
   return (
-    <div className="flex h-screen flex-col md:flex-row">
-      {/* Sidebar */}
-      <div className="w-[250px] bg-gray-800 h-screen hidden md:block">
-        <Sidebar />
-      </div>
+    <div className="flex h-screen">
+      <Sidebar />
+      
+      <div className="flex-1 overflow-auto">
+        <AdminHeader />
+        
+        <main className="p-6">
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#23856D]"
+              />
+            </div>
 
-      {/* Main Section */}
-      <div className="flex-1 flex flex-col bg-[#FAFAFA]">
-        {/* Admin Header */}
-        <div className="h-[70px] shadow-md flex items-center bg-white">
-          <AdminHeader />
-        </div>
-
-        {/* Product Table */}
-        <div className="p-4">
-          <div className="overflow-x-auto rounded-lg shadow-md">
-            <table className="min-w-full bg-[#FAFAFA] rounded-lg">
-              <thead>
-                <tr className="bg-[#23856D] text-white text-sm md:text-base">
-                  <th className="p-3 text-left">Image</th>
-                  <th className="p-3 text-left">Name</th>
-                  <th className="p-3 text-left">Price</th>
-                  <th className="p-3 text-left">Stock</th>
-                  <th className="p-3 text-left">Category</th>
-                  <th className="p-3 text-left">Status</th>
-                  <th className="p-3 text-left">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product._id} className="border-b text-sm md:text-base">
-                    <td className="p-3">
-                      {product.images?.length > 0 ? (
-                        <Image
-                          width={64}
-                          height={64}
-                          src={urlFor(product.images[0]).url()}
-                          alt={product.name}
-                          className="w-16 h-16 object-cover rounded"
-                        />
-                      ) : (
-                        <span className="text-gray-500">No Image</span>
-                      )}
-                    </td>
-                    <td className="p-3 truncate max-w-[150px]">{product.name}</td>
-                    <td className="p-3 text-green-600">${product.price}</td>
-                    <td className="p-3">{product.stock}</td>
-                    <td className="p-3 truncate max-w-[120px]">{product.categories?.join(", ") || "No Category"}</td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-1 rounded-md text-white ${
-                          product.status === "new"
-                            ? "bg-blue-500"
-                            : product.status === "hot"
-                            ? "bg-red-500"
-                            : "bg-yellow-500"
-                        }`}
-                      >
-                        {product.status}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => handleDelete(product._id)}
-                        className="text-red-500 hover:text-red-700"
-                        title="Delete Product"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#23856D]"
+            >
+              <option value="all">All Status</option>
+              <option value="new">New</option>
+              <option value="hot">Hot</option>
+              <option value="sale">Sale</option>
+            </select>
           </div>
-        </div>
+
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <motion.div
+                key={product._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all"
+              >
+                <div className="relative h-48">
+                  {product.images?.[0] && (
+                    <img
+                      src={urlFor(product.images[0]).url()}
+                      alt={product.name}
+                      className="w-full h-full object-cover rounded-t-lg"
+                    />
+                  )}
+                  <div className="absolute top-2 right-2 space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsEditing(product._id);
+                      }}
+                      className="p-2 bg-white rounded-full shadow-sm hover:shadow-md"
+                    >
+                      <Edit2 size={16} className="text-[#23856D]" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(product._id);
+                      }}
+                      className="p-2 bg-white rounded-full shadow-sm hover:shadow-md"
+                    >
+                      <Trash2 size={16} className="text-red-500" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[#23856D] font-bold">${product.price}</span>
+                    <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      product.status === 'new' ? 'bg-blue-100 text-blue-600' :
+                      product.status === 'hot' ? 'bg-red-100 text-red-600' :
+                      'bg-yellow-100 text-yellow-600'
+                    }`}>
+                      {product.status}
+                    </span>
+                    {product.categories?.map((cat: any) => (
+                      <span key={cat.title} className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
+                        {cat.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </main>
       </div>
     </div>
   );
-};
-
-export default ProductsPage;
-
-
-
-
-// "use client";
-// import { client } from '@/sanity/lib/client';
-// import { useEffect, useState } from 'react';
-// import Sidebar from '../components/Sidebar';
-// import AdminHeader from '../components/AdminHeader'; // Assuming you have an AdminHeader component
-// import { urlFor } from '@/sanity/lib/image';
-// import Image from 'next/image';
-// import { Loader2 } from 'lucide-react';
-
-// interface Product {
-//   _id: string;
-//   name: string;
-//   slug: string;
-//   images: string[]; // Array of image URLs
-//   intro: string;
-//   description: string;
-//   price: number;
-//   discount: number;
-//   stock: number;
-//   status: string;
-//   variant?: string; // Optional field (if some products don't have variants)
-//   categories: string[]; // Array of category titles
-// }
-
-
-// const ProductsPage = () => {
-//   const [products, setProducts] = useState<Product[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState<string | null>(null);
-
-//   useEffect(() => {
-//     const fetchProducts = async () => {
-//       try {
-//         const query = `*[_type == "product"]{
-//           _id,
-//           name,
-//           "slug": slug.current,
-//           images,
-//           intro,
-//           description,
-//           price,
-//           discount,
-//           stock,
-//           status,
-//           variant,
-//           "categories": categories[]->title
-//         }`;
-//         const data = await client.fetch(query);
-//         setProducts(data);
-//       } catch (err) {
-//         setError('Failed to load products.');
-//         console.error(err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchProducts();
-//   }, []);
-
-//   if (loading) return <span className='flex items-center justify-center h-screen gap-3 text-textColor2 '><Loader2 className='sm:w-8 sm:h-8 animate-spin'/> <span className='text-2xl sm:text-3xl font-semibold'>Product is loading...</span></span> 
-
-//   if (error) return <p className="text-center text-3xl h-screen flex items-center justify-center text-red-500">{error}</p>;
-
-//   return (
-//     <div className="flex h-screen flex-col md:flex-row">
-//     <div className="w-[250px] bg-gray-800 h-screen hidden md:block">
-//       <Sidebar />
-//     </div>
-
-//     <div className="flex-1 flex flex-col bg-[#FAFAFA]">
-//       <div className="h-[70px] shadow-md  flex items-center bg-white">
-//         <AdminHeader />
-//       </div>
-
-//       <div className="p-4">
-//         <div className="overflow-x-auto rounded-lg shadow-md">
-//           <table className="min-w-full bg-[#FAFAFA] rounded-lg">
-//             <thead>
-//               <tr className="bg-[#23856D] text-white text-sm md:text-base">
-//                 <th className="p-3 text-left">Image</th>
-//                 <th className="p-3 text-left">Name</th>
-//                 <th className="p-3 text-left">Price</th>
-//                 <th className="p-3 text-left">Stock</th>
-//                 <th className="p-3 text-left">Category</th>
-//                 <th className="p-3 text-left">Status</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {products.map((product) => (
-//                 <tr key={product._id} className="border-b text-sm md:text-base">
-//                   <td className="p-3">
-//                     {product.images?.length > 0 ? (
-//                       <Image
-//                         width={64}
-//                         height={64}
-//                         src={urlFor(product.images[0]).url()}
-//                         alt={product.name}
-//                         className="w-16 h-16 object-cover rounded"
-//                       />
-//                     ) : (
-//                       <span className="text-gray-500">No Image</span>
-//                     )}
-//                   </td>
-//                   <td className="p-3 truncate max-w-[150px]">{product.name}</td>
-//                   <td className="p-3 text-green-600">${product.price}</td>
-//                   <td className="p-3">{product.stock}</td>
-//                   <td className="p-3 truncate max-w-[120px]">{product.categories?.join(", ") || "No Category"}</td>
-//                   <td className="p-3">
-//                     <span
-//                       className={`px-2 py-1 rounded-md text-white ${
-//                         product.status === "new"
-//                           ? "bg-blue-500"
-//                           : product.status === "hot"
-//                           ? "bg-red-500"
-//                           : "bg-yellow-500"
-//                       }`}
-//                     >
-//                       {product.status}
-//                     </span>
-//                   </td>
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         </div>
-//       </div>
-//     </div>
-//   </div>
-//   );
-// };
-
-// export default ProductsPage;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// "use client"
-// import { client } from '@/sanity/lib/client';
-// import { useEffect, useState } from 'react';
-// import Sidebar from '../components/Sidebar';
-
-// const ProductsPage = () => {
-//   const [products, setProducts] = useState<any[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState<string | null>(null);
-
-//   useEffect(() => {
-//     const fetchProducts = async () => {
-//       try {
-//         const query = `*[_type == "product"]{
-//           _id,
-//           name,
-//           "slug": slug.current,
-//           images,
-//           intro,
-//           description,
-//           price,
-//           discount,
-//           stock,
-//           status,
-//           variant,
-//           "categories": categories[]->title
-//         }`;
-//         const data = await client.fetch(query);
-//         setProducts(data);
-//       } catch (err) {
-//         setError('Failed to load products.');
-//         console.error(err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchProducts();
-//   }, []);
-
-//   if (loading) return <p className="text-center text-blue-500">Loading products...</p>;
-//   if (error) return <p className="text-center text-red-500">{error}</p>;
-
-//   return (
-
-//     <div className='flex h-screen'>
-//          {/* <Sidebar /> */}
-//     <div className="p-">
-//       <h2 className="text-2xl font-semibold mb-4 text-center">Products</h2>
-//       <div className="overflow-x-auto  p-4 rounded-lg shadow-md">
-//         <table className="min-w-full bg-[#FAFAFA] rounded-lg">
-//           <thead>
-//             <tr className="bg-[#23856D] text-white">
-//               <th className="p-3 text-left">Image</th>
-//               <th className="p-3 text-left">Name</th>
-//               <th className="p-3 text-left">Price</th>
-//               <th className="p-3 text-left">Stock</th>
-//               <th className="p-3 text-left">Category</th>
-//               <th className="p-3 text-left">Status</th>
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {products.map((product) => (
-//               <tr key={product._id} className="border-b">
-//                 <td className="p-3">
-//                   {product.images && product.images.length > 0 ? (
-//                     <img src={product.images[0].asset.url} alt={product.name} className="w-16 h-16 object-cover rounded" />
-//                   ) : (
-//                     <span className="text-gray-500">No Image</span>
-//                   )}
-//                 </td>
-//                 <td className="p-3">{product.name}</td>
-//                 <td className="p-3 text-green-600">${product.price}</td>
-//                 <td className="p-3">{product.stock}</td>
-//                 <td className="p-3">{product.categories?.join(', ') || 'No Category'}</td>
-//                 <td className="p-3">
-//                   <span className={`px-2 py-1 rounded-md text-white ${
-//                     product.status === 'new' ? 'bg-blue-500' :
-//                     product.status === 'hot' ? 'bg-red-500' :
-//                     'bg-yellow-500'
-//                   }`}>
-//                     {product.status}
-//                   </span>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//     </div>
-//   );
-// };
-
-// export default ProductsPage;
+}

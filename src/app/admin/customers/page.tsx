@@ -5,150 +5,253 @@ import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 import AdminHeader from '../components/AdminHeader';
+import { Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-export type Customer = {
+interface Order {
   _id: string;
-  customerName?: string;
-  email?: string;
-  orderNumber?: string;
-  totalPrice?: number;
-  orderDate?: string;
-  status?: "pending" | "paid" | "shipped" | "delivered" | "cancelled";
-};
+  orderNumber: string;
+  customerName: string;
+  email: string;
+  totalPrice: number;
+  orderDate: string;
+  status: "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+}
+
+interface Customer {
+  email: string;
+  customerName: string;
+  orders: Order[];
+  totalSpent: number;
+}
 
 const AdminCustomers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    client
-      .fetch(`*[_type == "order"]{
-        _id,
-        orderNumber,
-        customerName,
-        email,
-        totalPrice,
-        orderDate,
-        status
-      }`)
-      .then((data) => setCustomers(data))
-      .catch((error) => console.error("Error fetching customers:", error));
+    const fetchCustomers = async () => {
+      try {
+        // First fetch all orders
+        const orders = await client.fetch<Order[]>(`
+          *[_type == "order"] {
+            _id,
+            orderNumber,
+            customerName,
+            email,
+            totalPrice,
+            orderDate,
+            status
+          }
+        `);
+
+        // Then group them by email to create customer profiles
+        const customerMap = orders.reduce((acc, order) => {
+          if (!order.email) return acc;
+
+          if (!acc[order.email]) {
+            acc[order.email] = {
+              email: order.email,
+              customerName: order.customerName,
+              orders: [],
+              totalSpent: 0
+            };
+          }
+
+          acc[order.email].orders.push(order);
+          acc[order.email].totalSpent += order.totalPrice || 0;
+
+          return acc;
+        }, {} as Record<string, Customer>);
+
+        setCustomers(Object.values(customerMap));
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+        toast.error("Failed to load customers");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCustomers();
   }, []);
 
-  const filteredCustomers = filter === "all" ? customers : customers.filter((customer) => customer.status === filter);
-
-  const toggleCustomerDetails = (customerId: string) => {
-    setSelectedCustomerId((prev) => (prev === customerId ? null : customerId));
+  const toggleCustomerDetails = (email: string) => {
+    setSelectedCustomerId(prev => prev === email ? null : email);
   };
 
-  const handleDelete = async (customerId: string) => {
-    try {
-      await client.delete(customerId);
-      setCustomers((prevCustomers) => prevCustomers.filter((customer) => customer._id !== customerId));
-      toast.success("Customer deleted successfully");
-    } catch (error) {
-      console.error("Error deleting customer:", error);
-      toast.error("Error deleting customer");
-    }
-  };
+  const filteredCustomers = customers.filter(customer => 
+    customer.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const calculateTotalCustomers = () => customers.length;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-[#23856D]" />
+      </div>
+    );
+  }
 
   return (
     <ProtectedRoute>
       <div className="flex h-screen">
-        {/* Sidebar */}
-        <div className="w-[250px] bg-gray-800 h-full md:p-4">
-          <Sidebar />
-        </div>
+        <Sidebar />
 
-        {/* Main Content */}
         <div className="flex-1 flex flex-col bg-[#FAFAFA]">
-          {/* Header */}
-          <div className="h-[70px] bg-white shadow-md">
-            <AdminHeader />
-          </div>
+          <AdminHeader />
 
-          {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {/* Navigation and Filters */}
-            <nav className="bg-textColor2 text-white p-4 mb-6 flex justify-between items-center rounded-lg shadow-md">
-              <h2 className='font-bold text-2xl'>Total Customers: {calculateTotalCustomers()}</h2>
-
-              <div className="space-x-4">
-                {["all", "pending", "delivered", "dispatched"].map((status) => (
-                  <button
-                    key={status}
-                    className={`px-4 py-2 rounded-lg ${filter === status ? "bg-white text-red-500 font-bold" : "text-white"}`}
-                    onClick={() => setFilter(status)}
+            {/* Header Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white p-6 rounded-lg shadow-md mb-6"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  {
+                    label: "Total Customers",
+                    value: customers.length
+                  },
+                  {
+                    label: "Total Revenue",
+                    value: `$${customers.reduce((sum, customer) => sum + customer.totalSpent, 0).toLocaleString()}`
+                  },
+                  {
+                    label: "Average Order Value",
+                    value: `$${(customers.reduce((sum, customer) => sum + customer.totalSpent, 0) / 
+                      customers.reduce((sum, customer) => sum + customer.orders.length, 0)).toFixed(2)}`
+                  }
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-gray-50 p-4 rounded-lg"
                   >
-                    {status}
-                  </button>
+                    <h3 className="text-gray-500 text-sm">{stat.label}</h3>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                  </motion.div>
                 ))}
               </div>
-            </nav>
+            </motion.div>
+
+            {/* Search Bar */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6"
+            >
+              <input
+                type="text"
+                placeholder="Search customers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full p-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#23856D]"
+              />
+            </motion.div>
 
             {/* Customers Table */}
-            <div className="overflow-x-auto bg-white p-4 rounded-lg shadow-lg">
-              <h2 className="text-lg font-semibold mb-4">Customers</h2>
-
-              <table className="w-full border-collapse border border-gray-300">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-white rounded-lg shadow-md overflow-hidden"
+            >
+              <table className="w-full">
                 <thead>
-                  <tr className="bg-darkBackground text-buttonColor">
-                    <th className="p-2 border">ID</th>
-                    <th className="p-2 border">Customer Name</th>
-                    <th className="p-2 border">Email</th>
-                    <th className="p-2 border">Order Number</th>
-                    <th className="p-2 border">Total</th>
-                    <th className="p-2 border">Status</th>
-                    <th className="p-2 border">Actions</th>
+                  <tr className="bg-[#23856D] text-white">
+                    <th className="p-4 text-left">Customer</th>
+                    <th className="p-4 text-left">Email</th>
+                    <th className="p-4 text-right">Orders</th>
+                    <th className="p-4 text-right">Total Spent</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCustomers.map((customer) => (
-                    <React.Fragment key={customer._id}>
-                      <tr
-                        className="cursor-pointer hover:bg-gray-100 transition-all"
-                        onClick={() => toggleCustomerDetails(customer._id)}
-                      >
-                        <td className="p-2 border">{customer._id}</td>
-                        <td className="p-2 border">{customer.customerName}</td>
-                        <td className="p-2 border">{customer.email}</td>
-                        <td className="p-2 border">{customer.orderNumber}</td>
-                        <td className="p-2 border">${customer.totalPrice}</td>
-                        <td className="p-2 border">{customer.status}</td>
-                        <td className="p-2 border">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(customer._id);
-                            }}
-                            className="bg-textColor2 text-white px-3 py-2 rounded-lg"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
+                  <AnimatePresence>
+                    {filteredCustomers.map((customer, index) => (
+                      <React.Fragment key={customer.email}>
+                        <motion.tr
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="border-b cursor-pointer hover:bg-gray-50"
+                          onClick={() => toggleCustomerDetails(customer.email)}
+                        >
+                          <td className="p-4">{customer.customerName}</td>
+                          <td className="p-4">{customer.email}</td>
+                          <td className="p-4 text-right">{customer.orders.length}</td>
+                          <td className="p-4 text-right">${customer.totalSpent.toLocaleString()}</td>
+                        </motion.tr>
 
-                      {/* Customer Details */}
-                      {selectedCustomerId === customer._id && (
-                        <tr>
-                          <td colSpan={7} className="bg-gray-50 p-4 transition-all">
-                            <h3 className="font-bold">Customer Details</h3>
-                            <p>Name: {customer.customerName}</p>
-                            <p>Email: {customer.email}</p>
-                            <p>Order Number: {customer.orderNumber}</p>
-                            <p>Total: ${customer.totalPrice}</p>
-                            <p>Status: {customer.status}</p>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        <AnimatePresence>
+                          {selectedCustomerId === customer.email && (
+                            <motion.tr
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                            >
+                              <td colSpan={4} className="bg-gray-50 p-4">
+                                <motion.div
+                                  initial={{ y: -20 }}
+                                  animate={{ y: 0 }}
+                                  className="space-y-4"
+                                >
+                                  <h3 className="font-semibold">Order History</h3>
+                                  <div className="grid grid-cols-1 gap-3">
+                                    {customer.orders.map((order) => (
+                                      <motion.div
+                                        key={order._id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        className="bg-white p-3 rounded-lg shadow-sm"
+                                      >
+                                        <div className="flex justify-between items-center">
+                                          <div>
+                                            <p className="font-medium">Order #{order.orderNumber}</p>
+                                            <p className="text-sm text-gray-500">
+                                              {new Date(order.orderDate).toLocaleDateString()}
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="font-bold">${order.totalPrice?.toLocaleString()}</p>
+                                            <span className={`text-xs px-2 py-1 rounded-full ${
+                                              order.status === 'delivered' ? 'bg-green-100 text-green-600' :
+                                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                                              'bg-blue-100 text-blue-600'
+                                            }`}>
+                                              {order.status}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </motion.div>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              </td>
+                            </motion.tr>
+                          )}
+                        </AnimatePresence>
+                      </React.Fragment>
+                    ))}
+                  </AnimatePresence>
                 </tbody>
               </table>
-            </div>
+            </motion.div>
+
+            {loading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-center p-8"
+              >
+                <Loader2 className="w-8 h-8 animate-spin text-[#23856D]" />
+              </motion.div>
+            )}
           </div>
         </div>
       </div>

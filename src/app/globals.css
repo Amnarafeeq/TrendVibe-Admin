@@ -2,13 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
-*{
-  padding: 0;
-  margin: 0;
+:root {
+  --primary: #23856D;
+  --primary-dark: #1B6553;
+  --secondary: #23A6F0;
+  --text-primary: #252B42;
+  --text-secondary: #737373;
+  --background: #FAFAFA;
 }
-body {
-  font-family: Arial, Helvetica, sans-serif;
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* Utility Classes */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+/* Table Styles */
+.admin-table {
+  @apply w-full border-collapse;
+}
+
+.admin-table th {
+  @apply bg-[#23856D] text-white p-3 text-left;
+}
+
+.admin-table td {
+  @apply p-3 border-b;
+}
+
+.admin-table tr:hover {
+  @apply bg-gray-50;
 }
 
 
