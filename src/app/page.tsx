@@ -16,7 +16,7 @@ const AdminLogin = () => {
         setLoading(true)
 
         try {
-            if (email === "trendvibe@gmail.com" && password === "trendvibe4567") {
+            if (email === "trendvibe@gmail.com" && password === "trendvibe456") {
                 localStorage.setItem("isLoggedIn", "true")
                 toast.success("Login successful!")
                 router.replace("/admin/dashboard")
